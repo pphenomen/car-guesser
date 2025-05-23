@@ -61,7 +61,7 @@ namespace car_guesses_prolog_api.Controllers
             var psi = new ProcessStartInfo
             {
                 FileName = "swipl",
-                Arguments = $"-s cars_akinator.pl -g \"{query}, halt.\"",
+                Arguments = $"-s cars_akinator.pl -g \"(once({query}) -> true ; true), halt.\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

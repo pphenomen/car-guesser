@@ -11,46 +11,82 @@ ask_question(6, 'Привод?', ['1. Передний', '2. Задний', '3. 
 ask_question(7, 'Коробка передач?', ['1. Механика', '2. Автомат']).
 ask_question(8, 'Быстрый?', ['1. Да', '2. Нет']).
 
-% Задаем вопрос и получаем ответ
+% Ввод ответа пользователя
 ask_user(Q, Answer) :-
     ask_question(Q, Question, Options),
     format('~w ~w~n', [Question, Options]),
     read(Answer).
 
+% Проверка префикса
+prefix([], _).
+prefix([H|T], [H|T2]) :-
+    prefix(T, T2).
+
+% Поиск всех машин, подходящих под текущий префикс
+matching_prefix(PartialAnswers, Matches) :-
+    findall(Car, (
+        car(Car, T, V, D, P, C, G, F, B),
+        Full = [T, V, D, P, C, G, F, B],
+        prefix(PartialAnswers, Full)
+    ), Matches).
+
+% Угадывание
 guess_car(Answers) :-
     car(Car, T, V, D, P, C, G, F, B),
     Answers = [T, V, D, P, C, G, F, B],
     format('Угадал: ~w~n', [Car]).
 
+% Добавление новой машины
 add_car(Name, T, V, D, P, C, G, F, B) :-
-    atom(Name), % Проверяем, что Name — это атом
+    atom(Name),
     assertz(car(Name, T, V, D, P, C, G, F, B)),
     format('Автомобиль ~w добавлен в базу данных!~n', [Name]).
 
+% Основной игровой цикл
 start_game :-
-    ask_user(1, Answer1),
-    ask_user(2, Answer2),
-    ask_user(3, Answer3),
-    ask_user(4, Answer4),
-    ask_user(5, Answer5),
-    ask_user(6, Answer6),
-    ask_user(7, Answer7),
-    ask_user(8, Answer8),
-    (   guess_car([Answer1, Answer2, Answer3, Answer4, Answer5, Answer6, Answer7, Answer8])
+    ask_loop([], FinalAnswers),
+    (   guess_car(FinalAnswers)
     ->  true
     ;   format('Не удалось угадать! Хотите добавить новый автомобиль? (да/нет)~n'),
         read(Response),
         (   Response = 'да'
         ->  format('Введите марку автомобиля (введите в кавычках, например \'BMW 8 Series\'): '),
             read(Name),
-            add_car(Name, Answer1, Answer2, Answer3, Answer4, Answer5, Answer6, Answer7, Answer8)
+            FinalAnswers = [T, V, D, P, C, G, F, B],
+            add_car(Name, T, V, D, P, C, G, F, B)
         ;   format('Спасибо за игру!~n')
+        )
+    ).
+
+ask_loop(AnswersSoFar, FinalAnswers) :-
+    length(AnswersSoFar, N),
+    matching_prefix(AnswersSoFar, Matches),
+    (   Matches = [OnlyCar]
+    ->  format('Вы загадали ~w? (да/нет)~n', [OnlyCar]),
+        read(Resp),
+        (   Resp = 'да'
+        ->  FinalAnswers = AnswersSoFar
+        ;   NextQ is N + 1,
+            ask_user(NextQ, Ans),
+            append(AnswersSoFar, [Ans], NewAnswers),
+            ask_loop(NewAnswers, FinalAnswers)
+        )
+    ;   (N >= 8 ->
+            FinalAnswers = AnswersSoFar
+        ;   NextQ is N + 1,
+            ask_user(NextQ, Ans),
+            append(AnswersSoFar, [Ans], NewAnswers),
+            ask_loop(NewAnswers, FinalAnswers)
         )
     ).
 
 % API
 
 ask(Answers) :-
+    matching_prefix(Answers, Matches),
+    ( Matches = [OnlyCar] ->
+        format('guess:~w', [OnlyCar]), !
+    ; true ),
     car(Car, T, V, D, P, C, G, F, B),
     Answers = [T, V, D, P, C, G, F, B],
     format('guess:~w', [Car]), !.
@@ -63,7 +99,7 @@ ask(Answers) :-
     format('question:~w ~w', [QText, Options]), !.
 
 ask(_) :-
-    write('not_found').
+        format('not_found'), !, halt.
 
 add_object(Name, Answers) :-
     Answers = [T, V, D, P, C, G, F, B],
