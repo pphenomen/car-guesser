@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace car_guesses_prolog_api.Controllers
 {
@@ -8,13 +9,19 @@ namespace car_guesses_prolog_api.Controllers
     [Route("api/[controller]")]
     public class AkinatorController : ControllerBase
     {
-        private static Dictionary<string, List<int>> Sessions = new();
+        private class SessionData
+        {
+            public List<int> Answers = new();
+            public (string X1, string X2, int Correct)? PendingDistinction = null;
+        }
+
+        private static Dictionary<string, SessionData> Sessions = new();
 
         [HttpGet("start")]
         public IActionResult StartSession([FromQuery] string sessionId)
         {
             if (!Sessions.ContainsKey(sessionId))
-                Sessions[sessionId] = new List<int>();
+                Sessions[sessionId] = new SessionData();
 
             var result = CallPrologAsk(new List<int>());
             return Ok(new { result });
@@ -24,11 +31,37 @@ namespace car_guesses_prolog_api.Controllers
         public IActionResult PostAnswer([FromBody] AnswerRequest request)
         {
             if (!Sessions.ContainsKey(request.SessionId))
-                Sessions[request.SessionId] = new List<int>();
+                Sessions[request.SessionId] = new SessionData();
 
-            Sessions[request.SessionId].Add(request.Answer);
+            var session = Sessions[request.SessionId];
 
-            var result = CallPrologAsk(Sessions[request.SessionId]);
+            if (session.PendingDistinction.HasValue)
+            {
+                var (X1, X2, Correct) = session.PendingDistinction.Value;
+                session.PendingDistinction = null;
+
+                if (request.Answer == Correct)
+                    return Ok(new { result = $"guess:{X2}" });
+                else
+                    return Ok(new { result = $"guess:{X1}" });
+            }
+
+            session.Answers.Add(request.Answer);
+
+            var result = CallPrologAsk(session.Answers);
+            
+            if (result.StartsWith("distinguish:"))
+            {
+                var match = Regex.Match(result, @"distinguish:([^:]+):([^:]+):(\d+):([^:]+):\[(.*)\]");
+                if (match.Success)
+                {
+                    string x1 = match.Groups[1].Value;
+                    string x2 = match.Groups[2].Value;
+                    int correct = int.Parse(match.Groups[3].Value);
+                    session.PendingDistinction = (x1, x2, correct);
+                }
+            }
+
             return Ok(new { result });
         }
 
@@ -39,7 +72,18 @@ namespace car_guesses_prolog_api.Controllers
             return Ok(new { result });
         }
 
-        // Вызов Prolog: угадывание
+        [HttpPost("add-object-with-question")]
+        public IActionResult PostAddObjectWithQuestion([FromBody] AddObjectWithQuestionRequest request)
+        {
+            string safeName = $"'{request.Name.Replace("'", "\\'")}'";
+            string baseAnswers = $"[{string.Join(",", request.BaseAnswers)}]";
+            string question = $"'{request.Question.Replace("'", "\\'")}'";
+            string options = $"['{request.Options[0]}','{request.Options[1]}']";
+            string query = $"add_object_with_question({safeName}, {baseAnswers}, {question}, {options}, {request.CorrectOption})";
+            var result = RunProlog(query);
+            return Ok(new { result });
+        }
+
         private string CallPrologAsk(List<int> answers)
         {
             string arg = answers.Count == 0 ? "[]" : $"[{string.Join(",", answers)}]";
@@ -47,7 +91,6 @@ namespace car_guesses_prolog_api.Controllers
             return RunProlog(query);
         }
 
-        // Вызов Prolog: добавление
         private string CallPrologAdd(string name, List<int> answers)
         {
             string safeName = $"'{name.Replace("'", "\\'")}'";
@@ -55,7 +98,6 @@ namespace car_guesses_prolog_api.Controllers
             return RunProlog(query);
         }
 
-        // Общий вызов Prolog
         private string RunProlog(string query)
         {
             var psi = new ProcessStartInfo
@@ -90,5 +132,14 @@ namespace car_guesses_prolog_api.Controllers
     {
         public string Name { get; set; } = string.Empty;
         public List<int> Answers { get; set; } = new();
+    }
+
+    public class AddObjectWithQuestionRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<int> BaseAnswers { get; set; } = new();
+        public string Question { get; set; } = string.Empty;
+        public List<string> Options { get; set; } = new();
+        public int CorrectOption { get; set; }
     }
 }

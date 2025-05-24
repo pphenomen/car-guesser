@@ -76,3 +76,5 @@ car('Dodge Durango', 3, 2, 1, 4, 2, 3, 2, 0).
 car('Lada Kalina', 1, 2, 1, 2, 3, 1, 2, 2).
 car('TestCar', 1, 1, 1, 1, 1, 1, 1, 1).
 
+car(oka,2,2,2,2,2,2,2,2).
+car(kika,2,2,2,2,2,2,2,2).
