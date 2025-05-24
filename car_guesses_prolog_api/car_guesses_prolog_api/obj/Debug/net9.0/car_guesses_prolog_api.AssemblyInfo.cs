@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("car_guesses_prolog_api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f7e5fadd4d7bf97bdb1d86c62d530833ce065a00")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2605f197a73f5932df9879acbfab26b6c1fdf228")]
 [assembly: System.Reflection.AssemblyProductAttribute("car_guesses_prolog_api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("car_guesses_prolog_api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

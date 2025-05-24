@@ -1,7 +1,7 @@
 :- consult('cars_db.pl').
 :- consult('cars_db_with_distinguish.pl').
 
-:- dynamic car/9.
+:- dynamic car/10.
 :- dynamic distinguish/5.
 :- dynamic pending_distinction/3.
 
@@ -26,7 +26,7 @@ prefix([H|T], [H|T2]) :- prefix(T, T2).
 
 matching_prefix(Answers, Matches) :-
     findall(Car, (
-        car(Car, T, V, D, P, C, G, F, B),
+        car(Car, T, V, D, P, C, G, F, B, _Unique),
         prefix(Answers, [T, V, D, P, C, G, F, B])
     ), Matches).
 
@@ -53,11 +53,13 @@ ask([Ans|_]) :-
 ask(Answers) :-
     matching_prefix(Answers, Matches),
     ( Matches = [OnlyCar] ->
-        format('guess:~w', [OnlyCar]), !
+        car(OnlyCar, T, V, D, P, C, G, F, B, Unique),
+        Answers = [T, V, D, P, C, G, F, B],
+        format('guess:~w:~w', [OnlyCar, Unique]), !
     ; true ),
-    car(Car, T, V, D, P, C, G, F, B),
+    car(Car, T, V, D, P, C, G, F, B, Unique2),
     Answers = [T, V, D, P, C, G, F, B],
-    format('guess:~w', [Car]), !.
+    format('guess:~w:~w', [Car, Unique2]), !.
 
 % Следующий вопрос
 ask(Answers) :-

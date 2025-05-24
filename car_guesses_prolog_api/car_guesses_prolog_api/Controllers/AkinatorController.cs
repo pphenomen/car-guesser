@@ -35,23 +35,28 @@ namespace car_guesses_prolog_api.Controllers
 
             var session = Sessions[request.SessionId];
 
+            // Обработка ответа на уточняющий вопрос (distinguish)
             if (session.PendingDistinction.HasValue)
             {
                 var (X1, X2, Correct) = session.PendingDistinction.Value;
                 session.PendingDistinction = null;
 
                 if (request.Answer == Correct)
-                    return Ok(new { result = $"guess:{X2}" });
+                    return Ok(new { car = X2, isUnique = true });
                 else
-                    return Ok(new { result = $"guess:{X1}" });
+                    return Ok(new { car = X1, isUnique = true });
             }
 
+            // Добавляем ответ в сессию
             session.Answers.Add(request.Answer);
 
+            // Запрос к Prolog
             var result = CallPrologAsk(session.Answers);
-            
+
+            // Если Prolog вернул вопрос distinguish, парсим и сохраняем
             if (result.StartsWith("distinguish:"))
             {
+                // Ожидаемый формат: distinguish:X1:X2:Correct:Вопрос:[Опции]
                 var match = Regex.Match(result, @"distinguish:([^:]+):([^:]+):(\d+):([^:]+):\[(.*)\]");
                 if (match.Success)
                 {
@@ -59,9 +64,27 @@ namespace car_guesses_prolog_api.Controllers
                     string x2 = match.Groups[2].Value;
                     int correct = int.Parse(match.Groups[3].Value);
                     session.PendingDistinction = (x1, x2, correct);
+
+                    // Возвращаем пользователю вопрос и варианты
+                    return Ok(new { question = match.Groups[4].Value, options = match.Groups[5].Value.Split(',') });
                 }
             }
 
+            // Если Prolog вернул угадывание
+            if (result.StartsWith("guess:"))
+            {
+                var parts = result.Substring(6).Split(':');
+                if (parts.Length == 2 && bool.TryParse(parts[1], out bool isUnique))
+                {
+                    return Ok(new { car = parts[0], isUnique });
+                }
+                else
+                {
+                    return Ok(new { car = result.Substring(6), isUnique = false });
+                }
+            }
+
+            // По умолчанию возвращаем результат
             return Ok(new { result });
         }
 
