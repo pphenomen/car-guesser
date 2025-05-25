@@ -75,6 +75,84 @@ car('Ford Bronco', 3, 2, 1, 4, 2, 3, 2, 1, false).
 car('Dodge Durango', 3, 2, 1, 4, 2, 3, 2, 0, false).
 car('Lada Kalina', 1, 2, 1, 2, 3, 1, 2, 2, false).
 car('TestCar', 1, 1, 1, 1, 1, 1, 1, 1, false).
+car(oka, 2, 2, 2, 2, 2, 2, 2, 2, false).
+car(kika, 2, 2, 2, 2, 2, 2, 2, 2, false).
+car('BMW M5', 3, 3, 3, 3, 3, 3, 3, 3, false).
+car('BMW eed5', 3, 3, 3, 3, 3, 3, 3, 3, false).
+car(rfrfrfrfrfr, 3, 3, 3, 3, 3, 3, 3, 4, false).
+car('Audi TT', 2, 1, 2, 3, 4, 2, 1, 0, false).
+car('Bentley Continental', 1, 3, 2, 5, 4, 3, 2, 1, false).
+car('Chevrolet Corvette', 2, 2, 1, 5, 2, 1, 1, 1, false).
+car('Dodge Charger', 2, 2, 2, 5, 2, 2, 1, 1, false).
+car('Ferrari F8', 2, 3, 2, 5, 4, 1, 1, 1, false).
+car('Ford Fiesta', 3, 1, 1, 2, 2, 2, 2, 0, false).
+car('Genesis G70', 1, 2, 2, 4, 3, 2, 1, 0, false).
+car('GMC Yukon', 2, 3, 1, 5, 2, 3, 2, 1, false).
+car('Honda Fit', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Hyundai Kona', 3, 1, 1, 3, 3, 2, 2, 0, false).
+car('Infiniti Q50', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Jaguar XE', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Jeep Compass', 3, 2, 1, 4, 2, 3, 2, 0, false).
+car('Kia Stinger', 2, 3, 2, 5, 3, 1, 1, 1, false).
+car('Lamborghini Huracan', 2, 3, 2, 5, 4, 1, 1, 1, false).
+car('Land Rover Discovery', 3, 3, 1, 5, 4, 3, 2, 1, false).
+car('Lexus IS', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Maserati Ghibli', 1, 3, 2, 5, 4, 2, 1, 1, false).
+car('Mazda CX-9', 3, 3, 1, 4, 4, 3, 2, 0, false).
+car('McLaren 720S', 2, 3, 2, 5, 4, 1, 1, 1, false).
+car('Mercedes-Benz GLE', 3, 3, 2, 5, 4, 3, 2, 1, false).
+car('Mini Countryman', 3, 2, 1, 3, 3, 2, 2, 0, false).
+car('Mitsubishi Lancer', 1, 2, 1, 3, 3, 2, 1, 0, false).
+car('Nissan GT-R', 2, 3, 2, 5, 3, 1, 1, 1, false).
+car('Porsche Panamera', 1, 3, 2, 5, 4, 2, 1, 1, false).
+car('Ram 2500', 2, 3, 1, 5, 2, 1, 2, 1, false).
+car('Renault Megane', 1, 2, 1, 3, 3, 2, 1, 0, false).
+car('Rolls-Royce Phantom', 1, 3, 2, 5, 4, 3, 1, 1, false).
+car('Subaru WRX', 2, 2, 2, 4, 3, 3, 1, 1, false).
+car('Suzuki Swift', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Tesla Model Y', 3, 3, 3, 1, 1, 2, 2, 1, false).
+car('Toyota Prius Prime', 3, 3, 3, 1, 3, 2, 2, 1, false).
+car('Toyota RAV4', 3, 2, 1, 4, 3, 3, 2, 0, false).
+car('Volkswagen Tiguan', 3, 2, 1, 4, 3, 3, 2, 0, false).
+car('Volvo S60', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Volvo V90', 3, 3, 2, 4, 4, 3, 2, 0, false).
+car('Acura TLX', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Alfa Romeo Giulia', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Buick Regal', 1, 2, 2, 3, 3, 2, 1, 0, false).
+car('Cadillac CTS', 1, 2, 2, 4, 4, 2, 1, 0, false).
+car('Chevrolet Bolt', 3, 3, 3, 1, 2, 2, 2, 1, false).
+car('Dodge Challenger', 2, 2, 2, 5, 2, 2, 1, 1, false).
+car('Fiat 500', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Ford Fusion', 1, 2, 2, 3, 3, 2, 1, 0, false).
+car('Genesis GV80', 3, 3, 1, 4, 4, 3, 2, 0, false).
+car('GMC Yukon XL', 2, 3, 1, 5, 2, 3, 2, 1, false).
+car('Honda HR-V', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Hyundai Ioniq', 3, 3, 3, 1, 3, 2, 2, 1, false).
+car('Infiniti QX50', 3, 2, 1, 4, 4, 3, 2, 0, false).
+car('Jeep Wrangler Unlimited', 3, 1, 1, 3, 2, 3, 1, 1, false).
+car('Kia Soul', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Lexus NX', 3, 2, 1, 4, 4, 3, 1, 0, false).
+car('Lincoln Corsair', 3, 2, 1, 4, 4, 3, 1, 0, false).
+car('Maserati Levante', 3, 3, 2, 4, 4, 3, 2, 0, false).
+car('Mazda CX-30', 3, 2, 1, 3, 4, 3, 2, 0, false).
+car('Mini Clubman', 3, 1, 1, 2, 3, 2, 2, 0, false).
+car('Mitsubishi Outlander PHEV', 3, 2, 3, 1, 3, 2, 2, 1, false).
+car('Nissan Leaf', 3, 3, 3, 1, 3, 2, 2, 1, false).
+car('Ram ProMaster', 2, 2, 1, 4, 2, 1, 2, 0, false).
+car('Subaru Forester', 3, 2, 1, 3, 3, 3, 2, 0, false).
+car('Toyota Avalon', 1, 3, 1, 4, 3, 2, 1, 0, false).
+car('Volkswagen Jetta', 1, 2, 1, 3, 3, 2, 1, 0, false).
+car('Alfa Romeo Stelvio', 3, 2, 1, 4, 4, 3, 2, 0, false).
+car('Audi Q3', 3, 2, 1, 4, 4, 3, 1, 0, false).
+car('BMW X1', 3, 2, 1, 4, 4, 3, 1, 0, false).
+car('Cadillac XT5', 3, 2, 1, 4, 4, 3, 1, 0, false).
+car('Chevrolet Blazer', 3, 2, 1, 4, 3, 3, 2, 0, false).
+car('Dodge Durango', 3, 2, 1, 4, 2, 3, 2, 0, false).
+car('Ford Escape', 3, 2, 1, 4, 2, 3, 2, 0, false).
+car('Honda Passport', 3, 2, 1, 4, 3, 3, 2, 0, false).
+car('Hyundai Santa Fe', 3, 2, 1, 4, 3, 3, 2, 0, false).
+car('Jeep Cherokee', 3, 2, 1, 4, 2, 3, 2, 0, false).
+car('Pagani Zonda', 1, 4, 1, 5, 5, 2, 2, 1, true).
+car('Mercedes-Benz G63 AMG (G-Wagon)', 4, 4, 1, 5, 4, 3, 2, 1, true).
+car('Range Rover Sport', 3, 3, 2, 5, 4, 3, 2, 1, true).
 
-car(oka,2,2,2,2,2,2,2,2,false).
-car(kika,2,2,2,2,2,2,2,2,false).
