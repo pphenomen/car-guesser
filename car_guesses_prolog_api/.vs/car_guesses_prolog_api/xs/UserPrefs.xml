@@ -1,0 +1,30 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workbench ActiveDocument="car_guesses_prolog_api/Controllers/AkinatorController.cs">
+    <Files>
+      <File FileName="car_guesses_prolog_api/Controllers/AkinatorController.cs" Line="13" Column="27" />
+      <File FileName="car_guesses_prolog_api/Program.cs" Line="26" Column="26" />
+      <File FileName="car_guesses_prolog_api/Properties/launchSettings.json" />
+      <File FileName="car_guesses_prolog_api/cars_akinator.pl" />
+      <File FileName="car_guesses_prolog_api/cars_db.pl" Line="9" Column="48" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="car_guesses_prolog_api" expanded="True">
+            <Node name="car_guesses_prolog_api" expanded="True">
+              <Node name="Controllers" expanded="True">
+                <Node name="AkinatorController.cs" selected="True" />
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
