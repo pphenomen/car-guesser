@@ -1,0 +1,52 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\temaf\\akinator\\AkinatorQueries\\AkinatorQueries.fsproj": {}
+  },
+  "projects": {
+    "C:\\Users\\temaf\\akinator\\AkinatorQueries\\AkinatorQueries.fsproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\temaf\\akinator\\AkinatorQueries\\AkinatorQueries.fsproj",
+        "projectName": "AkinatorQueries",
+        "projectPath": "C:\\Users\\temaf\\akinator\\AkinatorQueries\\AkinatorQueries.fsproj",
+        "packagesPath": "C:\\Users\\temaf\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\temaf\\akinator\\AkinatorQueries\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\temaf\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\sdk\\7.0.101\\FSharp\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.101\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
