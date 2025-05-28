@@ -1,0 +1,31 @@
+/* _content/CarGuesser.Web/Shared/MainLayout.razor.rz.scp.css */
+.page[b-mczmdrk1zx] {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar[b-mczmdrk1zx] {
+    flex-shrink: 0;
+}
+
+main[b-mczmdrk1zx] {
+    flex: 1 0 auto;
+    padding: 20px;
+}
+
+.content[b-mczmdrk1zx] {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+/* _content/CarGuesser.Web/Shared/NavMenu.razor.rz.scp.css */
+.nav-menu[b-90803vd705] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.nav-link[b-90803vd705] {
+    margin: 0 15px;
+}

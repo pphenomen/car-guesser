@@ -1,0 +1,10 @@
+.nav-menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.nav-link {
+    margin: 0 15px;
+}

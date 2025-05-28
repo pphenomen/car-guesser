@@ -1,0 +1,71 @@
+﻿@page "/stats"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+
+<div class="stats-container">
+    <h3>Статистика популярности автомобилей</h3>
+    @if (CarStats == null || !CarStats.Any())
+    {
+        <p>Нет данных для отображения.</p>
+    }
+    else
+    {
+        <table class="stats-table">
+            <thead>
+            <tr>
+                <th>Автомобиль</th>
+                <th>Количество игр</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var stat in CarStats)
+            {
+                <tr>
+                    <td>@stat.CarName</td>
+                    <td>@stat.PlayCount</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<CarStat> CarStats = new();
+    private HttpClient? Http;
+
+    protected override void OnInitialized()
+    {
+        Http = HttpClientFactory.CreateClient("ApiClient");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Http != null)
+        {
+            await LoadStats();
+        }
+    }
+
+    private async Task LoadStats()
+    {
+        if (Http == null) return;
+
+        try
+        {
+            CarStats = await Http.GetFromJsonAsync<List<CarStat>>("stats") ?? new List<CarStat>();
+        }
+        catch (Exception ex)
+        {
+            CarStats = new List<CarStat>();
+            Console.WriteLine("Ошибка загрузки статистики: " + ex.Message);
+        }
+    }
+
+    private class CarStat
+    {
+        public string? CarName { get; set; }
+        public int PlayCount { get; set; }
+    }
+}
