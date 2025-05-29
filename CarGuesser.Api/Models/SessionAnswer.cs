@@ -6,7 +6,8 @@
         public int GameSessionId { get; set; }
         public GameSession? GameSession { get; set; }
         public int QuestionNumber { get; set; }
-        public bool Answer { get; set; }
+        public string? QuestionText { get; set; }
+        public bool AnswerValue { get; set; }
     }
 
 }
