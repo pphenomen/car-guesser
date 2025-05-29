@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../buildMultiTargeting/car_guesses_prolog_api.props" />
-</Project>
