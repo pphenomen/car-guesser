@@ -12,4 +12,9 @@
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <SourceRoot Include="C:\Users\temaf\.nuget\packages\" />
   </ItemGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgFSharp_Core Condition=" '$(PkgFSharp_Core)' == '' ">C:\Users\temaf\.nuget\packages\fsharp.core\7.0.0</PkgFSharp_Core>
+    <PkgSQLProvider Condition=" '$(PkgSQLProvider)' == '' ">C:\Users\temaf\.nuget\packages\sqlprovider\1.5.7</PkgSQLProvider>
+    <PkgNpgsql Condition=" '$(PkgNpgsql)' == '' ">C:\Users\temaf\.nuget\packages\npgsql\7.0.6</PkgNpgsql>
+  </PropertyGroup>
 </Project>
