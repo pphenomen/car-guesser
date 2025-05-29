@@ -12,6 +12,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpClient("PrologApi", client =>
+{
+    var prologApiUrl = builder.Configuration.GetValue<string>("PrologApi:BaseUrl");
+    client.BaseAddress = new Uri(prologApiUrl);
+});
 
 var app = builder.Build();
 

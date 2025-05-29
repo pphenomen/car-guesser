@@ -149,6 +149,7 @@ car('Ford Escape', 3, 2, 1, 4, 2, 3, 2, 0, false).
 car('Honda Passport', 3, 2, 1, 4, 3, 3, 2, 0, false).
 car('Hyundai Santa Fe', 3, 2, 1, 4, 3, 3, 2, 0, false).
 car('Jeep Cherokee', 3, 2, 1, 4, 2, 3, 2, 0, false).
-car('Pagani Zonda', 1, 4, 1, 5, 5, 2, 2, 1, false).
-car('Mercedes-Benz G63 AMG (G-Wagon)', 4, 4, 1, 5, 4, 3, 2, 1, false).
 car('Range Rover Sport', 3, 3, 2, 5, 4, 3, 2, 1, false).
+car('Pagani Zonda', 1, 4, 1, 5, 5, 2, 2, 1, true).
+car('Mercedes-Benz G63 AMG (G-Wagon)', 4, 4, 1, 5, 4, 3, 2, 1, true).
+car('Audi RS7', 3, 4, 1, 5, 4, 3, 2, 1, true).

@@ -31,3 +31,4 @@ secrets.json
 # publish
 publish/
 *.v2
+/.vs
