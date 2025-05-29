@@ -30,5 +30,13 @@
 </div>
 
 <script src="_framework/blazor.server.js"></script>
+<script>
+    function updateParticlesColor(color) {
+        if (window.particlesJS) {
+            pJSDom[0].pJS.particles.color.value = color;
+            pJSDom[0].pJS.fn.particlesRefresh();
+        }
+    }
+</script>
 </body>
 </html>

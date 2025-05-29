@@ -36,6 +36,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU3RhdHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/david/car-guesser/car-guesser-frontend-ui/CarGuesser.Web/Shared/AuthModal.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0F1dGhNb2RhbC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/david/car-guesser/car-guesser-frontend-ui/CarGuesser.Web/Shared/LoginDisplay.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0xvZ2luRGlzcGxheS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

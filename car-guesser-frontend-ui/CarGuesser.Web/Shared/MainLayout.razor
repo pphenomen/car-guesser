@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -9,3 +10,16 @@
         </article>
     </main>
 </div>
+@code {
+    private string themeClass = "";
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedTheme = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "theme");
+            themeClass = savedTheme == "dark" ? "dark" : "light";
+            StateHasChanged();
+        }
+    }
+}

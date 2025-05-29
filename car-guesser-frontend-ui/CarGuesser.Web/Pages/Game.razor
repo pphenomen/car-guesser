@@ -5,399 +5,724 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 
-<div class="game-container @(isDarkTheme ? "dark" : "light")" id="particles-js">
+<div class="game-container @(isDarkTheme ? "dark" : "light")">
+    <div class="particles-container" id="particles-js"></div>
+
     <div class="header">
+        <button class="theme-toggle" @onclick="ToggleTheme">
+            @if (isDarkTheme)
+            {
+                <span>🌞 Светлая</span>
+            }
+            else
+            {
+                <span>🌙 Тёмная</span>
+            }
+        </button>
+
         <h1 class="title">Акинатор автомобилей</h1>
-        <button class="reset-top-btn" @onclick="ResetGame">Начать заново</button></div>
+
+        <div class="header-actions">
+            <div class="user-info">
+                <span class="user-icon">👤</span>
+                <span>@userName</span>
+            </div>
+            <button class="reset-btn" @onclick="ResetGame">Начать заново</button>
+        </div>
+    </div>
+
+    <div class="progress-container">
+        <div class="progress-bar" style="width: @progressPercentage%;"></div>
+        <div class="progress-text">Вопрос @questionCount из 10</div>
+    </div>
+
     <div class="content">
         <div class="card">
-            <p class="question-counter">Вопрос: @questionCount</p>
             @if (isLoading)
             {
-                <div class="spinner"></div>
-                <p class="loading-text">Загрузка...</p>
+                <div class="loader">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Загрузка...</p>
+                </div>
             }
             else if (!string.IsNullOrEmpty(apiError))
             {
                 <div class="error-message">
-                    <h4 class="error-text">Ошибка API: @apiError</h4>
+                    <h4 class="error-text">Ошибка: @apiError</h4>
+                    <button @onclick="ResetGame" class="retry-btn">Попробовать снова</button>
                 </div>
             }
-            else if (isGameOver)
+            else if (showResult)
             {
                 <div class="result-container">
-                    <p class="result-text">@gameResult</p>
-                    <button class="reset-btn" @onclick="ResetGame">Играть заново</button>
+                    <div class="result-icon">🎉</div>
+                    <h3 class="result-title">Мы угадали!</h3>
+                    <div class="result-car">@currentCarName</div>
+
+                    @if (isLoadingImage)
+                    {
+                        <div class="image-loader">
+                            <div class="spinner small"></div>
+                            <p>Загрузка изображения...</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(carImageUrl))
+                    {
+                        <img src="@carImageUrl"
+                             alt="@currentCarName"
+                             class="car-image"
+                             @onload="() => isLoadingImage = false"
+                             @onerror="HandleImageError"/>
+                    }
+                    else if (imageLoadError)
+                    {
+                        <div class="image-error">
+                            <p>Не удалось загрузить изображение</p>
+                            <button @onclick="TryLoadImageAgain" class="retry-btn">Повторить</button>
+                        </div>
+                    }
+
+                    <div class="result-actions">
+                        <button @onclick="ResetGame" class="result-btn primary">Играть снова</button>
+                        <button @onclick="NavigateHome" class="result-btn">На главную</button>
+                    </div>
+                </div>
+            }
+            else if (showAddCarDialog)
+            {
+                <div class="add-car-dialog">
+                    <h3>Мы не смогли угадать вашу машину 😔</h3>
+                    <p>Помогите нам стать умнее, добавив новую машину в базу знаний!</p>
+
+                    <div class="form-group">
+                        <label>Марка и модель автомобиля</label>
+                        <input @bind="newObjectName"
+                               class="form-input"
+                               placeholder="Например: Tesla Model S"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Вопрос для различия</label>
+                        <input @bind="newQuestion"
+                               class="form-input"
+                               placeholder="Например: Это электромобиль?"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Варианты ответов (через запятую)</label>
+                        <input @bind="newOptions"
+                               class="form-input"
+                               placeholder="Например: Да, Нет"
+                               @oninput="UpdateOptionsSelect"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Правильный ответ для вашей машины</label>
+                        <select @bind="correctOptionIndex" class="form-input">
+                            @foreach (var option in availableOptions)
+                            {
+                                <option value="@option.Index">@option.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="dialog-actions">
+                        <button @onclick="AddNewObject"
+                                class="dialog-btn primary"
+                                disabled="@(!CanAddNewCar)">Добавить
+                        </button>
+                        <button @onclick="() => showAddCarDialog = false"
+                                class="dialog-btn">Отмена
+                        </button>
+                    </div>
                 </div>
             }
             else
             {
-                <h4 class="question-text">@currentQuestion</h4>
-                <div class="button-group">
-                    @foreach (var option in answerOptions)
-                    {
-                        <button class="answer-btn" @onclick="() => SubmitAnswer(option.Index)">@option.Text</button>
-                    }
+                <div class="question-container">
+                    <h4 class="question-text">@currentQuestion</h4>
+
+                    <div class="button-group">
+                        @foreach (var option in answerOptions)
+                        {
+                            <button class="answer-btn"
+                                    @onclick="() => SubmitAnswer(option.Index)">
+                                @option.Text
+                            </button>
+                        }
+                    </div>
                 </div>
-                @if (!string.IsNullOrEmpty(guessedCar) && !isGameOver)
-                {
-                    <div class="result-container">
-                        <p class="result-text">Угадано: @guessedCar</p>
-                        <button class="reset-btn" @onclick="ResetGame">Играть заново</button>
-                    </div>
-                }
-                @if (isAddingObject)
-                {
-                    <div class="add-object-container">
-                        <input @bind="newObjectName" placeholder="Название машины" class="input-field" />
-                        <input @bind="newQuestion" placeholder="Новый вопрос" class="input-field" />
-                        <input @bind="newOptions" placeholder="Варианты (через запятую)" class="input-field" />
-                        <select @bind="correctOptionIndex" class="input-field">
-                            @for (int i = 0; i < newOptions.Split(',').Length; i++)
-                            {
-                                <option value="@i">@(i + 1). @(newOptions.Split(',')[i].Trim())</option>
-                            }
-                        </select>
-                        <button class="add-btn" @onclick="AddNewObject">Добавить</button>
-                    </div>
-                }
             }
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-<script>
-    particlesJS("particles-js", {
-        "particles": {
-            "number": { "value": 50, "density": { "enable": true, "value_area": 800 } },
-            "color": { "value": "#333" },
-            "shape": { "type": "circle" },
-            "opacity": { "value": 0.3, "random": true },
-            "size": { "value": 3, "random": true },
-            "line_linked": { "enable": false },
-            "move": { "enable": true, "speed": 1, "direction": "none", "random": true }
-        },
-        "interactivity": {
-            "detect_on": "canvas",
-            "events": { "onhover": { "enable": true, "mode": "repulse" }, "onclick": { "enable": true, "mode": "push" } },
-            "modes": { "repulse": { "distance": 150, "duration": 0.4 }, "push": { "particles_nb": 4 } }
-        },
-        "retina_detect": true
-    });
+@if (showNotification)
+{
+    <div class="notification @notificationClass">
+        @notificationMessage
+    </div>
+}
 
-    document.querySelectorAll('.answer-btn').forEach(btn => {
-        btn.addEventListener('mousemove', (e) => {
-            const rect = btn.getBoundingClientRect();
-            const x = e.clientX - rect.left - rect.width / 2;
-            const y = e.clientY - rect.top - rect.height / 2;
-            btn.style.transform = `translate(${x / 20}px, ${y / 20}px)`;
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.transform = 'translate(0, 0)';
-        });
+<script>
+    // Инициализация particles только один раз
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.particlesInitialized) {
+            particlesJS("particles-js", {
+                "particles": {
+                    "number": {"value": 40, "density": {"enable": true, "value_area": 800}},
+                    "color": {"value": "@(isDarkTheme ? "#888" : "#555")"},
+                    "shape": {"type": "circle"},
+                    "opacity": {"value": 0.2, "random": true},
+                    "size": {"value": 3, "random": true},
+                    "line_linked": {"enable": false},
+                    "move": {
+                        "enable": true,
+                        "speed": 1,
+                        "direction": "none",
+                        "random": true,
+                        "out_mode": "out"
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {"enable": true, "mode": "repulse"},
+                        "onclick": {"enable": true, "mode": "push"}
+                    },
+                    "modes": {
+                        "repulse": {"distance": 100, "duration": 0.4},
+                        "push": {"particles_nb": 3}
+                    }
+                },
+                "retina_detect": true
+            });
+            window.particlesInitialized = true;
+        }
     });
 </script>
 
 <style>
+
+    .placeholder-car {
+        width: 100%;
+        height: 250px;
+        background: linear-gradient(45deg, #f5f5f5 25%, #e0e0e0 50%, #f5f5f5 75%);
+        background-size: 200% 200%;
+        border-radius: 15px;
+        animation: loading-pulse 1.5s infinite;
+        margin: 20px 0;
+    }
+
+    @@keyframes loading-pulse {
+        0% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
     :root {
-        --primary-color: #000000;
-        --secondary-color: #f5f5f7;
-        --accent-color: #0071e3;
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --accent-color: #4895ef;
+        --success-color: #4cc9f0;
+        --error-color: #f72585;
+        --warning-color: #f8961e;
+        --dark-bg: #1a1a2e;
+        --light-bg: #f8f9fa;
         --card-bg: rgba(255, 255, 255, 0.95);
-        --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --text-dark: #14213d;
+        --text-light: #e5e5e5;
+        --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
     }
 
-    @@keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    @@keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-
-    @@keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    .dark {
+        --primary-color: #4895ef;
+        --secondary-color: #4361ee;
+        --accent-color: #3f37c9;
+        --card-bg: rgba(26, 26, 46, 0.95);
+        --text-dark: #e5e5e5;
+        --text-light: #f8f9fa;
     }
 
     .game-container {
         min-height: 100vh;
-        padding: 60px 20px;
-        background: linear-gradient(180deg, #000000 0%, #1a1a1a 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        position: relative;
-        overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        color: var(--secondary-color);
+        padding: 20px;
+        background: var(--light-bg);
+        color: var(--text-dark);
+        transition: var(--transition);
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
     }
 
     .game-container.dark {
-        background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
+        background: var(--dark-bg);
+        color: var(--text-light);
     }
 
+    /* HEADER */
     .header {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        margin-bottom: 40px;
-        animation: fadeInUp 0.6s ease-out;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .theme-toggle {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        box-shadow: var(--shadow);
+    }
+
+    .theme-toggle:hover {
+        transform: translateY(-2px);
+        background: var(--secondary-color);
     }
 
     .title {
-        font-size: 2.5rem;
-        font-weight: 600;
-        color: var(--secondary-color);
-        text-align: center;
-        letter-spacing: -0.5px;
-        text-transform: uppercase;
-    }
-
-    .reset-top-btn, .theme-toggle {
-        background: var(--accent-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        font-size: 0.9rem;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: transform 0.3s ease, background 0.3s ease;
-        box-shadow: var(--shadow);
-    }
-
-    .reset-top-btn:hover, .theme-toggle:hover {
-        transform: translateY(-2px);
-        background: #005bb5;
-    }
-
-    .content {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-    }
-
-    .card {
-        background: var(--card-bg);
-        padding: 40px;
-        border-radius: 20px;
-        box-shadow: var(--shadow);
-        max-width: 600px;
-        width: 100%;
-        animation: fadeInUp 0.6s ease-out 0.2s backwards;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 500px;
-    }
-
-    .question-counter {
-        font-size: 1rem;
-        color: var(--primary-color);
-        margin-bottom: 20px;
-        opacity: 0.8;
-    }
-
-    .question-text {
         font-size: 1.8rem;
-        color: var(--primary-color);
-        margin-bottom: 30px;
-        font-weight: 500;
+        font-weight: 700;
         text-align: center;
-    }
-
-    .button-group {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        margin-top: auto;
-        padding-bottom: 20px;
-    }
-
-    .answer-btn {
-        background: var(--accent-color);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        font-size: 1rem;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: transform 0.3s ease, background 0.3s ease;
-        box-shadow: var(--shadow);
-        text-align: center;
-    }
-
-    .answer-btn:hover {
-        transform: translateY(-2px);
-        background: #005bb5;
-    }
-
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #ccc;
-        border-top: 4px solid var(--accent-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 20px auto;
-    }
-
-    .loading-text {
-        color: var(--primary-color);
-        text-align: center;
-        font-size: 1.2rem;
-    }
-
-    .error-message {
-        background: rgba(255, 69, 58, 0.1);
-        color: #ff453a;
-        padding: 20px;
-        border-radius: 20px;
-        text-align: center;
-        animation: fadeInUp 0.6s ease-out;
-    }
-
-    .error-text {
-        font-size: 1.2rem;
         margin: 0;
+        color: var(--primary-color);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .result-container {
-        margin-top: 30px;
-        text-align: center;
-        animation: fadeInUp 0.6s ease-out;
-    }
-
-    .result-text {
-        color: #34c759;
-        font-size: 1.8rem;
-        font-weight: 600;
-        margin-bottom: 20px;
+    .user-info {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 6px 15px;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .reset-btn {
-        background: var(--accent-color);
+        background: var(--error-color);
         color: white;
         border: none;
-        padding: 12px 24px;
-        font-size: 1rem;
-        border-radius: 20px;
+        padding: 8px 20px;
+        border-radius: 30px;
         cursor: pointer;
-        transition: transform 0.3s ease, background 0.3s ease;
+        transition: var(--transition);
+        font-weight: 500;
         box-shadow: var(--shadow);
     }
 
     .reset-btn:hover {
         transform: translateY(-2px);
-        background: #005bb5;
+        background: #d9048e;
     }
 
-    .dark .card {
-        background: rgba(30, 30, 30, 0.95);
-        color: var(--secondary-color);
+    /* PROGRESS BAR */
+    .progress-container {
+        width: 100%;
+        height: 12px;
+        background: rgba(0, 0, 0, 0.08);
+        border-radius: 10px;
+        margin: 0 auto 30px;
+        overflow: hidden;
     }
 
-    .dark .question-counter, .dark .question-text {
-        color: var(--secondary-color);
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        border-radius: 10px;
+        transition: width 0.5s ease;
+        box-shadow: 0 2px 5px rgba(67, 97, 238, 0.3);
     }
 
-    .dark .answer-btn {
-        background: #0066cc;
+    .progress-text {
+        text-align: center;
+        margin-top: 8px;
+        font-size: 0.9rem;
+        opacity: 0.8;
     }
 
-    .dark .reset-top-btn, .dark .theme-toggle, .dark .reset-btn {
-        background: #0066cc;
-    }
-
-    .dark .spinner {
-        border-color: #666;
-        border-top-color: #0066cc;
-    }
-
-    .dark .error-message {
-        background: rgba(255, 69, 58, 0.05);
-    }
-
-    .add-object-container {
-        margin-top: 20px;
+    /* CARD & CONTENT */
+    .card {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        max-width: 700px;
+        width: 100%;
+        min-height: 450px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        transition: var(--transition);
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    .input-field {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 20px;
-        font-size: 1rem;
-        outline: none;
-        transition: border-color 0.3s ease;
+    .question-text {
+        font-size: 1.8rem;
+        margin: 20px 0 40px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.4;
+        color: var(--primary-color);
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+    }
+    
+    .button-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: auto;
     }
 
-    .input-field:focus {
-        border-color: var(--accent-color);
-    }
-
-    .add-btn {
-        background: #34c759;
+    .answer-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         color: white;
         border: none;
-        padding: 12px 24px;
-        font-size: 1rem;
-        border-radius: 20px;
+        padding: 16px;
+        font-size: 1.1rem;
+        border-radius: 12px;
         cursor: pointer;
-        transition: transform 0.3s ease, background 0.3s ease;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+        min-height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .answer-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .answer-btn:active {
+        transform: translateY(1px);
+    }
+
+    /* RESULT SECTION */
+    .result-container {
+        text-align: center;
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .result-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        color: var(--accent-color);
+    }
+
+    .result-title {
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+    }
+
+    .result-car {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 30px;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        padding: 0 10px;
+    }
+
+    .car-image {
+        max-width: 100%;
+        border-radius: 15px;
+        margin: 0 auto 30px;
+        max-height: 250px;
+        object-fit: contain;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .result-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .result-btn {
+        padding: 14px 30px;
+        border-radius: 12px;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: var(--transition);
+        min-width: 180px;
+        font-weight: 500;
         box-shadow: var(--shadow);
     }
 
-    .add-btn:hover {
-        transform: translateY(-2px);
-        background: #2da44e;
+    .result-btn.primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+
+    .result-btn:not(.primary) {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--text-dark);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .result-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    /* FORM ELEMENTS */
+    .form-input {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        font-size: 1rem;
+        background: rgba(0, 0, 0, 0.03);
+        color: var(--text-dark);
+        transition: var(--transition);
+        margin-bottom: 5px;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .dialog-btn {
+        padding: 14px 25px;
+        border-radius: 12px;
+        font-weight: 500;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+    }
+
+    .dialog-btn.primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+
+    /* LOADING STATES */
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    /* ANIMATIONS */
+    @@keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* MOBILE RESPONSIVENESS */
+    @@media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 1.6rem;
+            order: -1;
+            width: 100%;
+        }
+
+        .theme-toggle {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            padding: 20px;
+            min-height: 400px;
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            margin: 15px 0 30px;
+        }
+
+        .button-group {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .answer-btn {
+            padding: 14px;
+            font-size: 1rem;
+            min-height: 60px;
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+        }
+
+        .result-car {
+            font-size: 1.7rem;
+        }
+
+        .result-actions,
+        .dialog-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .result-btn,
+        .dialog-btn {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .progress-container {
+            height: 10px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .game-container {
+            padding: 15px;
+        }
+
+        .title {
+            font-size: 1.5rem;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            margin: 10px 0 25px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .card {
+            padding: 15px;
+            min-height: 380px;
+        }
+
+        .result-title {
+            font-size: 1.6rem;
+        }
+
+        .result-car {
+            font-size: 1.5rem;
+        }
+
+        .result-icon {
+            font-size: 3rem;
+        }
+
+        .car-image {
+            max-height: 200px;
+        }
     }
 </style>
 
 @code {
     private HttpClient Http => HttpClientFactory.CreateClient("BackendApi");
+    private bool isWaitingRestartChoice = false;
     private bool isLoading;
     private string userName = "Гость";
     private string currentQuestion = "";
-    private string guessedCar = "";
     private string apiError = "";
     private string sessionId = "";
     private int questionCount = 0;
     private bool isDarkTheme = false;
     private List<AnswerOption> answerOptions = new List<AnswerOption>();
     private bool isAddingObject = false;
+    private bool isIdentifyingCar = false;
     private string newObjectName = "";
     private string newQuestion = "";
     private string newOptions = "";
     private int correctOptionIndex = 0;
+    private string identifiedCarName = "";
     private List<int> previousAnswers = new List<int>();
-    private bool isGameOver = false;
-    private string gameResult = "";
-    private bool shouldStartNewGame = true;
+
+    // Новые поля для улучшений
+    private double progressPercentage = 0;
+    private bool showResult = false;
+    private string currentCarName = "";
+    private string carImageUrl = "";
+    private bool showAddCarDialog = false;
+    private bool isLoadingImage = false;
+    private bool imageLoadError = false;
+    private List<AnswerOption> availableOptions = new List<AnswerOption>();
+    private bool showNotification = false;
+    private string notificationMessage = "";
+    private string notificationClass = "";
+    private DotNetObjectReference<Game>? dotNetRef;
+    private Timer? notificationTimer;
 
     protected override async Task OnInitializedAsync()
     {
+        dotNetRef = DotNetObjectReference.Create(this);
+    
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         userName = authState.User.Identity?.Name ?? "Гость";
 
         var uri = new Uri(Navigation.Uri);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        sessionId = query["sessionId"];
-        var firstQuestion = query["firstQuestion"];
+        sessionId = query["sessionId"] ?? "";
+        var firstQuestion = query["firstQuestion"] ?? "";
 
+        // Если sessionId пустой, создаём новую сессию
         if (string.IsNullOrEmpty(sessionId))
         {
-            apiError = "Не удалось получить sessionId";
+            Console.WriteLine("SessionId not found in URL, starting new game");
+            await StartGame();
             return;
         }
 
@@ -412,29 +737,41 @@
             catch (JsonException ex)
             {
                 apiError = $"Ошибка парсинга ответа: {ex.Message}";
+                Console.WriteLine($"JSON parse error: {ex}");
             }
         }
-        else if (shouldStartNewGame)
+        else
         {
+            Console.WriteLine("FirstQuestion not found, starting new game");
             await StartGame();
         }
+    
+        // Загрузка темы из localStorage
+        var savedTheme = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "theme");
+        isDarkTheme = savedTheme == "dark";
     }
 
     private async Task StartGame()
     {
-        if (isAddingObject || isGameOver) return; // Не начинаем новую игру, если открыта форма добавления или игра завершена
-
         isLoading = true;
         questionCount = 0;
         apiError = "";
         previousAnswers.Clear();
-        guessedCar = "";
         currentQuestion = "";
         answerOptions.Clear();
         isAddingObject = false;
-        isGameOver = false;
-        gameResult = "";
-        shouldStartNewGame = true;
+        isIdentifyingCar = false;
+        newObjectName = "";
+        newQuestion = "";
+        newOptions = "";
+        correctOptionIndex = 0;
+        identifiedCarName = "";
+        showResult = false;
+        showAddCarDialog = false;
+        carImageUrl = "";
+        imageLoadError = false;
+
+        UpdateProgress();
 
         try
         {
@@ -465,11 +802,26 @@
 
     private async Task SubmitAnswer(int index)
     {
-        if (isGameOver || isAddingObject) return;
+        if (isAddingObject || isIdentifyingCar) return;
+
+        if (isWaitingRestartChoice)
+        {
+            if (index == 0)
+            {
+                await ResetGame();
+            }
+            else
+            {
+                Navigation.NavigateTo("/");
+            }
+
+            return;
+        }
 
         isLoading = true;
         apiError = "";
         answerOptions.Clear();
+        UpdateProgress();
 
         try
         {
@@ -497,36 +849,19 @@
             apiError = $"Ошибка: {ex.Message}";
         }
 
-        if (currentQuestion.Contains("Хотите добавить новую?"))
-        {
-            if (index == 0) // Пользователь выбрал "Да"
-            {
-                Console.WriteLine("Выбрано 'Да', открываем форму добавления");
-                isAddingObject = true;
-                shouldStartNewGame = false;
-                answerOptions.Clear();
-                currentQuestion = "Добавьте новую машину";
-            }
-            else if (index == 1) // Пользователь выбрал "Нет"
-            {
-                Console.WriteLine("Выбрано 'Нет', завершаем игру");
-                isGameOver = true;
-                gameResult = "Машина не найдена.";
-                currentQuestion = "";
-                answerOptions.Clear();
-                shouldStartNewGame = false;
-            }
-        }
-
         isLoading = false;
         StateHasChanged();
     }
 
     private void ProcessResponse(JsonElement root)
     {
+        answerOptions.Clear();
+        showResult = false;
+        showAddCarDialog = false;
+
         if (root.TryGetProperty("result", out var result))
         {
-            var resultText = result.GetString() ?? "";
+            var resultText = result.GetString();
             if (string.IsNullOrEmpty(resultText))
             {
                 apiError = "Получен пустой результат от бэкенда";
@@ -537,40 +872,31 @@
             {
                 var questionText = resultText.Substring("question:".Length).Trim();
                 ParseQuestion(questionText);
-                if (questionCount < 8)
-                {
-                    questionCount++;
-                }
-                else
-                {
-                    currentQuestion = "Достигнут лимит вопросов. Хотите добавить новую машину?";
-                    answerOptions.Add(new AnswerOption { Index = 0, Text = "Да" });
-                    answerOptions.Add(new AnswerOption { Index = 1, Text = "Нет" });
-                    isAddingObject = false;
-                }
+                questionCount++;
             }
             else if (resultText.StartsWith("car:"))
             {
                 var carText = resultText.Substring("car:".Length).Trim();
-                var carName = carText.Split(':')[0];
-                guessedCar = carName;
-                currentQuestion = "";
-                answerOptions.Clear();
-                isGameOver = true;
-                gameResult = $"Угадано: {guessedCar}";
-                shouldStartNewGame = false;
+                var carParts = carText.Split(':');
+
+                if (carParts.Length > 0)
+                {
+                    currentCarName = carParts[0].Trim();
+                    ShowCarResult(currentCarName);
+                }
+
+                return;
             }
             else if (resultText == "not_found")
             {
-                currentQuestion = "Не удалось угадать машину. Хотите добавить новую?";
-                answerOptions.Add(new AnswerOption { Index = 0, Text = "Да" });
-                answerOptions.Add(new AnswerOption { Index = 1, Text = "Нет" });
-                isAddingObject = false;
+                ShowAddCarDialog();
+                return;
             }
             else if (resultText.StartsWith("distinguish:"))
             {
-                currentQuestion = "Уточняющий вопрос: " + resultText.Substring("distinguish:".Length).Trim();
-                ParseQuestion(currentQuestion);
+                var questionText = resultText.Substring("distinguish:".Length).Trim();
+                ParseQuestion(questionText);
+                questionCount++;
             }
             else if (resultText.StartsWith("Error:"))
             {
@@ -583,41 +909,102 @@
                 currentQuestion = "";
             }
         }
+        else if (root.TryGetProperty("question", out var question))
+        {
+            var questionText = question.GetString();
+            if (string.IsNullOrEmpty(questionText))
+            {
+                apiError = "Получен пустой вопрос от бэкенда";
+                return;
+            }
+
+            ParseQuestion(questionText);
+            questionCount++;
+        }
         else if (root.TryGetProperty("car", out var car))
         {
-            var carText = car.GetString() ?? "";
+            var carText = car.GetString();
             if (string.IsNullOrEmpty(carText))
             {
                 apiError = "Получено пустое имя машины";
                 return;
             }
 
-            // Проверяем, содержит ли ответ "falseguess"
-            if (carText.Contains("falseguess"))
-            {
-                // Считаем это как "not_found", чтобы дать возможность добавить машину
-                currentQuestion = "Не удалось угадать машину. Хотите добавить новую?";
-                answerOptions.Add(new AnswerOption { Index = 0, Text = "Да" });
-                answerOptions.Add(new AnswerOption { Index = 1, Text = "Нет" });
-                isAddingObject = false;
-                guessedCar = "";
-            }
-            else
-            {
-                var carName = carText.Split(':')[0];
-                guessedCar = carName;
-                currentQuestion = "";
-                answerOptions.Clear();
-                isGameOver = true;
-                gameResult = $"Угадано: {guessedCar}";
-                shouldStartNewGame = false;
-            }
+            currentCarName = carText.Split(':')[0];
+            ShowCarResult(currentCarName);
+            return;
         }
         else
         {
-            apiError = "Отсутствует свойство 'result' или 'car' в ответе";
+            apiError = "Отсутствует свойство 'result', 'question' или 'car' в ответе";
             currentQuestion = "";
         }
+
+        UpdateProgress();
+    }
+
+    private void ShowCarResult(string carName)
+    {
+        currentCarName = carName;
+        showResult = true;
+        isLoadingImage = true;
+        imageLoadError = false;
+        LoadCarImage(carName);
+    }
+
+    private async Task LoadCarImage(string carName)
+    {
+        try
+        {
+            isLoadingImage = true;
+            imageLoadError = false;
+            StateHasChanged();
+
+            // Добавляем задержку для демонстрации спиннера
+            await Task.Delay(300);
+
+            // Пробуем разные варианты запросов
+            string[] searchQueries =
+            {
+                $"{carName} car",
+                $"{carName}",
+                carName.Split(' ')[0] + " car",
+                "luxury car" // fallback
+            };
+
+            foreach (var query in searchQueries)
+            {
+                carImageUrl = $"https://source.unsplash.com/600x400/?{Uri.EscapeDataString(query)}&{Guid.NewGuid()}";
+                StateHasChanged();
+
+                // Даем время на загрузку
+                await Task.Delay(500);
+                if (!imageLoadError) break;
+            }
+        }
+        catch
+        {
+            imageLoadError = true;
+        }
+        finally
+        {
+            isLoadingImage = false;
+        }
+    }
+
+    private void HandleImageError()
+    {
+        imageLoadError = true;
+        isLoadingImage = false;
+        StateHasChanged();
+    }
+
+    private void TryLoadImageAgain()
+    {
+        isLoadingImage = true;
+        imageLoadError = false;
+        LoadCarImage(currentCarName);
+        StateHasChanged();
     }
 
     private void ParseQuestion(string questionText)
@@ -633,14 +1020,15 @@
         else
         {
             currentQuestion = questionText;
-            answerOptions.Clear();
+            answerOptions.Add(new AnswerOption { Index = 0, Text = "Да" });
+            answerOptions.Add(new AnswerOption { Index = 1, Text = "Нет" });
         }
     }
 
     private List<AnswerOption> ParseAnswerOptions(string optionsText)
     {
         var options = new List<AnswerOption>();
-        var optionParts = optionsText.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        var optionParts = optionsText.Split(',', StringSplitOptions.RemoveEmptyEntries);
         for (int i = 0; i < optionParts.Length; i++)
         {
             var option = optionParts[i].Trim();
@@ -648,75 +1036,169 @@
             {
                 options.Add(new AnswerOption { Index = i, Text = option.Substring(2).Trim() });
             }
+            else
+            {
+                options.Add(new AnswerOption { Index = i, Text = option });
+            }
         }
+
         return options;
     }
 
     private async Task ResetGame()
     {
-        isLoading = true;
-        apiError = "";
-        currentQuestion = "";
-        guessedCar = "";
-        answerOptions.Clear();
-        isAddingObject = false;
+        await StartGame();
+    }
+
+    private async Task ToggleTheme()
+    {
+        isDarkTheme = !isDarkTheme;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "theme", isDarkTheme ? "dark" : "light");
+        await JSRuntime.InvokeVoidAsync("updateParticlesColor", isDarkTheme ? "#888" : "#555");
+        StateHasChanged();
+    }
+
+    private void ShowAddCarDialog()
+    {
         newObjectName = "";
         newQuestion = "";
         newOptions = "";
         correctOptionIndex = 0;
-        questionCount = 0;
-        previousAnswers.Clear();
-        isGameOver = false;
-        gameResult = "";
-        shouldStartNewGame = true;
+        availableOptions.Clear();
 
-        await StartGame();
+        showAddCarDialog = true;
+        StateHasChanged();
     }
 
-    private void ToggleTheme()
+    private void UpdateProgress()
     {
-        isDarkTheme = !isDarkTheme;
+        // Прогресс на основе количества вопросов
+        progressPercentage = Math.Min(95, questionCount * 10);
     }
+
+    private void UpdateOptionsSelect()
+    {
+        availableOptions.Clear();
+        if (!string.IsNullOrWhiteSpace(newOptions))
+        {
+            var options = newOptions.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < options.Length; i++)
+            {
+                availableOptions.Add(new AnswerOption { Index = i, Text = options[i].Trim() });
+            }
+
+            if (correctOptionIndex >= availableOptions.Count)
+            {
+                correctOptionIndex = availableOptions.Count > 0 ? 0 : -1;
+            }
+        }
+        else
+        {
+            correctOptionIndex = -1;
+        }
+
+        StateHasChanged();
+    }
+
+    private bool CanAddNewCar =>
+        !string.IsNullOrEmpty(newObjectName) &&
+        !string.IsNullOrEmpty(newQuestion) &&
+        !string.IsNullOrEmpty(newOptions) &&
+        availableOptions.Count > 0;
 
     private async Task AddNewObject()
     {
-        if (string.IsNullOrEmpty(newObjectName) || string.IsNullOrEmpty(newQuestion) || string.IsNullOrEmpty(newOptions))
+        // Проверка обязательных полей
+        if (string.IsNullOrWhiteSpace(newObjectName) ||
+            string.IsNullOrWhiteSpace(newQuestion) ||
+            string.IsNullOrWhiteSpace(newOptions))
         {
-            apiError = "Пожалуйста, заполните все поля.";
-            isLoading = false;
-            StateHasChanged();
+            ShowNotification("Заполните все поля", "error");
             return;
         }
 
+        // Разделение вариантов ответов
+        var optionsArray = newOptions.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(o => o.Trim())
+            .ToArray();
+
+        // Проверка количества вариантов
+        if (optionsArray.Length < 2)
+        {
+            ShowNotification("Должно быть не менее двух вариантов ответов", "error");
+            return;
+        }
+
+        // Проверка индекса правильного ответа
+        if (correctOptionIndex < 0 || correctOptionIndex >= optionsArray.Length)
+        {
+            ShowNotification("Некорректный индекс правильного ответа", "error");
+            return;
+        }
+        
         isLoading = true;
         try
         {
-            var optionsArray = newOptions.Split(',').Select(o => o.Trim()).ToArray();
             var request = new
             {
                 Name = newObjectName,
                 BaseAnswers = previousAnswers.ToArray(),
                 Question = newQuestion,
                 Options = optionsArray,
-                CorrectOption = correctOptionIndex + 1 // Преобразуем в 1-based для Prolog
+                CorrectOption = correctOptionIndex + 1 // 1-based индекс
             };
-
+            
             var response = await Http.PostAsJsonAsync("beckend/add-object-with-question", request);
 
             if (response.IsSuccessStatusCode)
             {
-                isAddingObject = false;
-                isGameOver = true;
-                gameResult = $"Машина '{newObjectName}' успешно добавлена.";
-                currentQuestion = "";
-                answerOptions.Clear();
-                shouldStartNewGame = false;
+                ShowNotification($"Машина '{newObjectName}' успешно добавлена!", "success");
+                showAddCarDialog = false;
+                await ResetGame();
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                apiError = $"Ошибка: {response.StatusCode} - {(string.IsNullOrEmpty(errorContent) ? "Нет данных" : errorContent)}";
+                apiError = $"Ошибка: {response.StatusCode} - {errorContent}";
+                ShowNotification("Ошибка при добавлении машины", "error");
             }
+        }
+        catch (Exception ex)
+        {
+            apiError = $"Ошибка: {ex.Message}";
+            ShowNotification("Произошла ошибка", "error");
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task IdentifyCar()
+    {
+        if (string.IsNullOrEmpty(identifiedCarName))
+        {
+            ShowNotification("Введите название машины", "error");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var request = new { sessionId, carName = identifiedCarName };
+            var response = await Http.PostAsJsonAsync("beckend/identify-car", request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Ответ бэкенда (IdentifyCar): {responseBody}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                apiError = $"Ошибка: {response.StatusCode} - {responseBody}";
+                isLoading = false;
+                return;
+            }
+
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+            ProcessResponse(root);
         }
         catch (Exception ex)
         {
@@ -727,18 +1209,66 @@
         StateHasChanged();
     }
 
+    private void ShowNotification(string message, string type)
+    {
+        notificationMessage = message;
+        notificationClass = type;
+        showNotification = true;
+        StateHasChanged();
+
+        // Автоматическое скрытие уведомления
+        notificationTimer?.Dispose();
+        notificationTimer = new Timer(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        }, null, 3000, Timeout.Infinite);
+    }
+
+    private void NavigateHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+        notificationTimer?.Dispose();
+    }
+
     private class AnswerOption
     {
         public int Index { get; set; }
         public string Text { get; set; } = string.Empty;
     }
 
-    private class SessionData
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        public string SessionId { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public string Question { get; set; } = string.Empty;
-        public int Answer { get; set; }
-        public string GuessedCar { get; set; } = string.Empty;
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("setupKeyHandlers",
+                DotNetObjectReference.Create(this));
+        }
     }
+
+    [JSInvokable]
+    public async Task HandleGlobalKeyDown(string key)
+    {
+        if (key == "Enter" && answerOptions.Count > 0 && !isLoading)
+        {
+            // Автоматически выбираем первую кнопку при нажатии Enter
+            await SubmitAnswer(answerOptions[0].Index);
+        }
+    }
+
 }
+
+<script>
+    function setupKeyHandlers(dotNetRef) {
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                await dotNetRef.invokeMethodAsync('HandleGlobalKeyDown', e.key);
+            }
+        });
+    }
+</script>

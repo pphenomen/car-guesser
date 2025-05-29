@@ -1,0 +1,217 @@
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="auth-modal @(IsVisible ? "visible" : "")">
+    <div class="auth-card">
+        <div class="auth-tabs">
+            <button class="@(IsLoginMode ? "active" : "")" @onclick="() => SetAuthMode(true)">Вход</button>
+            <button class="@(!IsLoginMode ? "active" : "")" @onclick="() => SetAuthMode(false)">Регистрация</button>
+        </div>
+
+        <div class="auth-form">
+            @if (!IsLoginMode)
+            {
+                <div class="form-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" @bind="Username" class="form-input" />
+                </div>
+            }
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" @bind="Email" class="form-input" />
+            </div>
+            
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" @bind="Password" class="form-input" />
+            </div>
+            
+            @if (!IsLoginMode)
+            {
+                <div class="form-group">
+                    <label>Подтвердите пароль</label>
+                    <input type="password" @bind="ConfirmPassword" class="form-input" />
+                </div>
+            }
+            
+            <div class="form-actions">
+                <button @onclick="Submit" class="auth-button">
+                    @(IsLoginMode ? "Войти" : "Зарегистрироваться")
+                </button>
+                <button @onclick="Close" class="auth-button secondary">Отмена</button>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="auth-error">@ErrorMessage</div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .auth-modal.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        overflow: hidden;
+    }
+    
+    .auth-tabs {
+        display: flex;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .auth-tabs button {
+        flex: 1;
+        padding: 15px;
+        background: none;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .auth-tabs button.active {
+        background: #f5f5f7;
+        font-weight: 500;
+    }
+    
+    .auth-form {
+        padding: 25px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border 0.2s;
+    }
+    
+    .form-input:focus {
+        border-color: #0071e3;
+        outline: none;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 25px;
+    }
+    
+    .auth-button {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .auth-button {
+        background: #0071e3;
+        color: white;
+    }
+    
+    .auth-button.secondary {
+        background: #f5f5f7;
+        color: #333;
+    }
+    
+    .auth-button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    .auth-error {
+        margin-top: 15px;
+        padding: 10px;
+        background: #ffebee;
+        color: #c62828;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    
+    private bool IsLoginMode = true;
+    private string Email = "";
+    private string Password = "";
+    private string ConfirmPassword = "";
+    private string Username = "";
+    private string ErrorMessage = "";
+
+    private void SetAuthMode(bool isLogin)
+    {
+        IsLoginMode = isLogin;
+        ErrorMessage = "";
+    }
+
+    private async Task Submit()
+    {
+        // Заглушка для тестирования
+        if (string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Password))
+        {
+            ErrorMessage = "Заполните все поля";
+            return;
+        }
+        
+        if (!IsLoginMode && Password != ConfirmPassword)
+        {
+            ErrorMessage = "Пароли не совпадают";
+            return;
+        }
+        
+        // В реальном приложении здесь будет вызов API
+        await Close();
+        
+        // Обновляем состояние аутентификации
+        await AuthStateProvider.GetAuthenticationStateAsync();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+}

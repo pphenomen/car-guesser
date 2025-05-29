@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/car_guesses_prolog_api.props" />
+</Project>

@@ -1,9 +1,16 @@
 ﻿@page "/"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
+<AuthModal @bind-IsVisible="showAuthModal"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <div class="index-container">
-    <h1 class="welcome-title">Акинатор автомобилей</h1>
+    <div class="hero-section">
+        <h1 class="welcome-title">Угадай автомобиль</h1>
+        <p class="subtitle">ИИ поможет определить машину по вашим ответам</p>
+    </div>
+
     @if (isLoading)
     {
         <div class="spinner"></div>
@@ -17,7 +24,25 @@
     }
     else
     {
-        <button @onclick="StartGame" class="start-btn">Играть</button>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">@totalGames</div>
+                <div class="stat-label">Всего игр</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@successRate%</div>
+                <div class="stat-label">Угадано</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@activePlayers</div>
+                <div class="stat-label">Игроков</div>
+            </div>
+        </div>
+
+        <button @onclick="StartGame" class="start-btn">
+            <span class="btn-icon">🚗</span>
+            Начать игру
+        </button>
     }
 </div>
 
@@ -77,8 +102,12 @@
     }
 
     @@keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .loading-text {
@@ -106,11 +135,37 @@
     private HttpClient Http => HttpClientFactory.CreateClient("BackendApi");
     private bool isLoading;
     private string apiError = "";
+    private bool showAuthModal;
+
+    // Статистика (заглушка)
+    private int totalGames = 1242;
+    private int successRate = 83;
+    private int activePlayers = 356;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Добавлено для устранения предупреждения
+        await Task.CompletedTask;
+
+        // Загрузка реальной статистики с бэкенда
+        // await LoadStats();
+    }
 
     private async Task StartGame()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Исправленная проверка на null
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            showAuthModal = true;
+            return;
+        }
+
         isLoading = true;
         apiError = "";
+
         try
         {
             var sessionId = Guid.NewGuid().ToString();
@@ -118,21 +173,19 @@
 
             if (!response.IsSuccessStatusCode)
             {
-                apiError = $"Ошибка: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+                apiError = $"Ошибка: {response.StatusCode}";
                 isLoading = false;
                 return;
             }
 
             var responseBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Ответ бэкенда: {responseBody}"); // Подробное логирование
-
-            // Перенаправляем на страницу игры
             Navigation.NavigateTo($"/game?sessionId={sessionId}&firstQuestion={Uri.EscapeDataString(responseBody)}");
         }
         catch (Exception ex)
         {
             apiError = $"Ошибка: {ex.Message}";
+            isLoading = false;
         }
-        isLoading = false;
     }
+
 }

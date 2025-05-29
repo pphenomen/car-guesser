@@ -1,0 +1,127 @@
+:- consult('cars_db.pl').
+:- consult('cars_db_with_distinguish.pl').
+
+:- dynamic car/10.
+:- dynamic distinguish/5.
+:- dynamic pending_distinction/3.
+
+% Вопросы
+ask_question(1, 'Тип кузова?', ['1. Купе', '2. Седан', '3. Хэтчбек', 'Внедорожник']).
+ask_question(2, 'Объем двигателя?', ['1. 1-2 литра', '2. 2-3 литра', '3. 3-4 литра', '4. 4-5+ литра']).
+ask_question(3, 'Тип двигателя?', ['1. Бензин', '2. Дизель', '3. Электрический']).
+ask_question(4, 'Мощность?', ['1. 50-100 л.с.', '2. 100-200 л.с.', '3. 200-300 л.с.', '4. 300-400 л.с.', '5. 400-500+ л.с.']).
+ask_question(5, 'Страна производства?', ['1. Россия', '2. США', '3. Япония', '4. Германия', '5. Другое']).
+ask_question(6, 'Привод?', ['1. Передний', '2. Задний', '3. Полный']).
+ask_question(7, 'Коробка передач?', ['1. Механика', '2. Автомат']).
+ask_question(8, 'Быстрый?', ['1. Да', '2. Нет']).
+
+% Ввод
+ask_user(Q, Answer) :-
+    ask_question(Q, Text, Opts),
+    format('~w ~w~n', [Text, Opts]),
+    read(Answer).
+
+% Проверка префикса
+prefix([], _).
+prefix([H|T], [H|T2]) :-
+    prefix(T, T2).
+
+% Поиск машин с префиксом
+matching_prefix(Answers, Matches) :-
+    findall(Car, (
+        car(Car, T, V, D, P, C, G, F, B, _Unique),
+        prefix(Answers, [T, V, D, P, C, G, F, B])
+    ), Matches).
+
+% Обработка уточняющих вопросов distinguish
+ask(Answers) :-
+    matching_prefix(Answers, Matches),
+    length(Answers, 8),
+    findall((X1, X2, QText, Opts, Correct), (
+        distinguish(X1, X2, QText, Opts, Correct),
+        member(X1, Matches),
+        member(X2, Matches),
+        X1 \= X2
+    ), [(X1, X2, QText, Opts, Correct) | _]),
+    format('distinguish:~w:~w:~w:~w:~w~n', [X1, X2, Correct, QText, Opts]),
+    asserta(pending_distinction(X1, X2, Correct)),
+    !.
+
+ask([Ans|_]) :-
+    retract(pending_distinction(X1, X2, Correct)),
+    ( Ans =:= Correct -> format('guess:~w', [X2])
+    ; format('guess:~w', [X1])
+    ), !.
+
+% Стандартное угадывание
+ask(Answers) :-
+    matching_prefix(Answers, Matches),
+    ( Matches = [OnlyCar] ->
+        car(OnlyCar, T, V, D, P, C, G, F, B, Unique),
+        Answers = [T, V, D, P, C, G, F, B],
+        format('guess:~w:~w', [OnlyCar, Unique]), !
+    ; true ),
+    car(Car, T, V, D, P, C, G, F, B, Unique2),
+    Answers = [T, V, D, P, C, G, F, B],
+    format('guess:~w:~w', [Car, Unique2]), !.
+
+% Следующий вопрос
+ask(Answers) :-
+    length(Answers, N),
+    N < 8,
+    Q is N + 1,
+    ask_question(Q, Qtext, Opts),
+    format('question:~w ~w', [Qtext, Opts]), !.
+
+% Нет совпадений
+ask(_) :-
+    format('not_found'), !, halt.
+
+% Добавление машины с уточняющим вопросом
+add_object_with_question(Name, BaseAnswers, QuestionText, Options, CorrectForNew) :-
+    BaseAnswers = [T, V, D, P, C, G, F, B],
+
+    findall(Car, (
+        car(Car, T2, V2, D2, P2, C2, G2, F2, B2, _),
+        [T2, V2, D2, P2, C2, G2, F2, B2] = BaseAnswers
+    ), Matches),
+
+    ( member(Name, Matches) -> true
+    ; assertz(car(Name, T, V, D, P, C, G, F, B, false)),
+      open('cars_db.pl', append, S),
+      format(S, 'car(~q,~w,~w,~w,~w,~w,~w,~w,~w,false).~n',
+             [Name, T, V, D, P, C, G, F, B]),
+      close(S)
+    ),
+
+    forall((member(Other, Matches), Other \= Name), (
+        Opposite is 3 - CorrectForNew,
+        D1 = distinguish(Other, Name, QuestionText, Options, CorrectForNew),
+        D2 = distinguish(Name, Other, QuestionText, Options, Opposite),
+        assertz(D1), assertz(D2),
+        append_distinguish(D1),
+        append_distinguish(D2)
+    )),
+
+    format('added_with_question'), !.
+
+% Добавить машину без вопроса
+add_object(Name, Answers) :-
+    Answers = [T, V, D, P, C, G, F, B],
+    assertz(car(Name, T, V, D, P, C, G, F, B, false)),
+    save_cars,
+    write('success').
+
+% Сохранение базы машин
+save_cars :-
+    open('cars_db.pl', write, Stream),
+    set_output(Stream),
+    listing(car/10),
+    close(Stream),
+    set_output(user_output).
+
+% Сохранение distinguish-фактов
+append_distinguish(D) :-
+    open('cars_db_with_distinguish.pl', append, Stream),
+    portray_clause(Stream, D),
+    close(Stream).
