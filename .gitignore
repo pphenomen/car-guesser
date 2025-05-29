@@ -1,0 +1,33 @@
+# Build artifacts
+bin/
+obj/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# EF Core
+**/Migrations/*.Designer.cs
+**/Migrations/*ModelSnapshot.cs
+
+# VS Code
+.vscode/
+.idea/
+
+# ASP.NET secrets
+appsettings.Development.json
+appsettings.*.json
+secrets.json
+
+# publish
+publish/
+*.v2
