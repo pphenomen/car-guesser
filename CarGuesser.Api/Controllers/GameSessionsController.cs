@@ -22,6 +22,10 @@ namespace CarGuesser.Api.Controllers
             if (request.UserId <= 0)
                 return BadRequest("Некорректный UserId.");
 
+            var userExists = await _context.Users.AnyAsync(u => u.Id == request.UserId);
+            if (!userExists)
+                return BadRequest("Пользователь не найден.");
+
             var session = new GameSession
             {
                 UserId = request.UserId,

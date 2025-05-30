@@ -3,6 +3,9 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using CarGuesser.Api.Data;
+using CarGuesser.Api.Models;
 
 namespace CarGuesser.Api.Controllers
 {
@@ -11,10 +14,12 @@ namespace CarGuesser.Api.Controllers
     public class GuessController : ControllerBase
     {
         private readonly HttpClient _httpClient;
+        private readonly ApplicationDbContext _context;
 
-        public GuessController(IHttpClientFactory httpClientFactory)
+        public GuessController(IHttpClientFactory httpClientFactory, ApplicationDbContext context)
         {
             _httpClient = httpClientFactory.CreateClient("PrologApi");
+            _context = context;
         }
 
         [HttpPost("answer")] // принимает ответ пользователя и отправляет его в пролог, возвращает следующий вопрос или результат
@@ -33,25 +38,40 @@ namespace CarGuesser.Api.Controllers
             using var doc = JsonDocument.Parse(responseBody);
             var root = doc.RootElement;
 
+            // если пролог вернул вопрос — просто возвращаем его
             if (root.TryGetProperty("question", out var question))
             {
                 return Ok(new { type = "question", text = question.GetString() });
             }
 
+            // если пролог вернул угаданную машину
             if (root.TryGetProperty("car", out var car))
             {
+                string carName = car.GetString() ?? "";
+
+                // получение информации из БД по имени машины
+                var carEntity = await _context.Cars
+                    .FirstOrDefaultAsync(c => c.Name == carName);
+
+                bool isLiverpoolPlayerCar = carEntity?.OwnerClub?.Equals("Liverpool", System.StringComparison.OrdinalIgnoreCase) == true;
+                string? liverpoolPlayerName = carEntity?.OwnerName;
+
                 bool isUnique = false;
                 if (root.TryGetProperty("isUnique", out var uniqueProp))
                     isUnique = uniqueProp.GetBoolean();
 
+                // возвращаем в ответе поля принадлежности игроку Ливерпуля
                 return Ok(new
                 {
                     type = "guess",
-                    car = car.GetString(),
-                    isUnique = isUnique
+                    car = carName,
+                    isUnique = isUnique,
+                    isLiverpoolPlayerCar = isLiverpoolPlayerCar,
+                    liverpoolPlayerName = liverpoolPlayerName
                 });
             }
 
+            // обработка результата "not found" или других результатов
             if (root.TryGetProperty("result", out var result))
             {
                 var resultStr = result.GetString();
@@ -65,8 +85,10 @@ namespace CarGuesser.Api.Controllers
                 }
             }
 
+            // ответ на неизвестный результат от Prolog
             return Ok(new { type = "unknown", text = "Неизвестный ответ от сервера" });
         }
+
 
         [HttpGet("start")] // инициализирует новую игровую сессию, возвращает стартовый вопрос
         public async Task<IActionResult> StartSession([FromQuery] string sessionId)
